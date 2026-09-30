@@ -5,6 +5,8 @@ import Staff from '@/models/Staff';
 import Payslip from '@/models/Payslip';
 import { getAuthenticatedUser } from '@/lib/auth-guard';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const user = await getAuthenticatedUser();

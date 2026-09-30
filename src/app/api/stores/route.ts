@@ -7,6 +7,8 @@ import Wallet from '@/models/Wallet';
 import User from '@/models/User';
 import { getAuthenticatedUser } from '@/lib/auth-guard';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const authUser = await getAuthenticatedUser();
