@@ -142,3 +142,5 @@ export function useStore() {
   }
   return context;
 }
+
+export default StoreProvider;
