@@ -12,6 +12,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
+import Logo from '@/components/Logo';
 
 interface HeaderProps {
   onOpenCreateStore: () => void;
@@ -55,9 +56,7 @@ export default function Header({ onOpenCreateStore }: HeaderProps) {
     <header className="bg-emerald-800 text-white sticky top-0 z-40 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shrink-0">
-            <span className="font-bold text-lg text-emerald-200">T</span>
-          </div>
+          <Logo imgClassName="w-10 h-10 rounded-xl object-contain border border-white/20 shadow-xs shrink-0 p-0.5 bg-white/10" />
 
           <div className="relative">
             <button

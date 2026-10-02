@@ -9,6 +9,7 @@ import OfflineBanner from '@/components/OfflineBanner';
 import OnboardingModal from '@/components/OnboardingModal';
 import CreateStoreModal from '@/components/modals/CreateStoreModal';
 import DashboardTab from '@/components/tabs/DashboardTab';
+import WalletsTab from '@/components/tabs/WalletsTab';
 import CapitalTab from '@/components/tabs/CapitalTab';
 import PayrollTab from '@/components/tabs/PayrollTab';
 import MyPayslipsTab from '@/components/tabs/MyPayslipsTab';
@@ -87,6 +88,7 @@ export default function HomePage() {
 
             {/* Tab Views */}
             {activeTab === 'dashboard' && <DashboardTab />}
+            {activeTab === 'wallets' && <WalletsTab />}
             {activeTab === 'capital' && <CapitalTab />}
             {activeTab === 'payroll' && <PayrollTab />}
             {activeTab === 'my-payslips' && <MyPayslipsTab />}
@@ -150,7 +152,7 @@ export default function HomePage() {
                 className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-[0.99]"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Buat Unit Toko Baru</span>
+                <span>Buat Unit Toko Baru</span>
               </button>
             </div>
           </div>

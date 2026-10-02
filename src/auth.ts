@@ -1,8 +1,10 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
+import mongoose from 'mongoose';
 import connectToDatabase from './lib/db/mongoose';
 import User from './models/User';
+import { verifyPassword } from './lib/auth/password';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -11,29 +13,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || '',
     }),
     Credentials({
-      id: 'demo-login',
-      name: 'Demo Login',
+      id: 'credentials',
+      name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        name: { label: 'Nama', type: 'text' },
+        identifier: { label: 'Email atau Username', type: 'text' },
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null;
+        const identifier = (credentials?.identifier as string || '').toLowerCase().trim();
+        const password = (credentials?.password as string || '');
+
+        if (!identifier || !password) return null;
+
         await connectToDatabase();
-        const email = (credentials.email as string).toLowerCase().trim();
-        let user = await User.findOne({ email });
-        if (!user) {
-          user = await User.create({
-            email,
-            name: (credentials.name as string) || email.split('@')[0],
-            avatarUrl: '',
-          });
-        }
+
+        const user = await User.findOne({
+          $or: [{ email: identifier }, { username: identifier }],
+        });
+
+        if (!user || !user.password) return null;
+
+        const isValid = verifyPassword(password, user.password);
+        if (!isValid) return null;
+
         return {
           id: user._id.toString(),
           email: user.email,
           name: user.name,
-          image: user.avatarUrl,
+          image: user.avatarUrl || '',
         };
       },
     }),
@@ -62,9 +69,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
     async jwt({ token, user, trigger, session }) {
-      if (user && user.email) {
+      const email = user?.email || (token.email as string);
+      const id = user?.id || (token.id as string) || (token.sub as string);
+
+      if (email || id) {
         await connectToDatabase();
-        const dbUser = await User.findOne({ email: user.email.toLowerCase() });
+        let dbUser = null;
+        if (id && mongoose.Types.ObjectId.isValid(id)) {
+          dbUser = await User.findById(id);
+        }
+        if (!dbUser && email) {
+          dbUser = await User.findOne({ email: email.toLowerCase() });
+        }
+
         if (dbUser) {
           token.sub = dbUser._id.toString();
           token.id = dbUser._id.toString();

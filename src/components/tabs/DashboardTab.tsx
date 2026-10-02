@@ -2,27 +2,21 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Wallet as WalletIcon,
-  TrendingUp,
-  TrendingDown,
   ArrowUpRight,
   ArrowDownRight,
   ArrowRightLeft,
   Plus,
-  Coins,
-  HandCoins,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import CreateTransactionModal from '../modals/CreateTransactionModal';
-import CreateWalletModal from '../modals/CreateWalletModal';
-import TransferWalletModal from '../modals/TransferWalletModal';
-import CreateCapitalModal from '../modals/CreateCapitalModal';
-import CreateAdvanceModal from '../modals/CreateAdvanceModal';
 
 interface WalletData {
   id: string;
   name: string;
   balance: number;
+  type?: 'cash' | 'bank' | 'ewallet';
+  bankCode?: string | null;
+  accountNumber?: string | null;
 }
 
 interface TransactionData {
@@ -43,12 +37,6 @@ interface SummaryData {
   netCashFlow: number;
 }
 
-interface StaffData {
-  id: string;
-  name: string;
-  baseSalary: number;
-}
-
 export default function DashboardTab() {
   const { currentStore, isOffline } = useStore();
   const [wallets, setWallets] = useState<WalletData[]>([]);
@@ -58,19 +46,19 @@ export default function DashboardTab() {
     totalExpense: 0,
     netCashFlow: 0,
   });
-  const [staffList, setStaffList] = useState<StaffData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [selectedWalletFilter, setSelectedWalletFilter] = useState('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
-  const [dateRange, setDateRange] = useState<'today' | 'month' | 'all'>('month');
+  // Default tab terbuka adalah 'today' (Hari Ini)
+  const [dateRange, setDateRange] = useState<'today' | 'month' | 'range'>('today');
+
+  // Custom date range inputs
+  const todayISO = new Date().toISOString().split('T')[0];
+  const [customStartDate, setCustomStartDate] = useState(todayISO);
+  const [customEndDate, setCustomEndDate] = useState(todayISO);
 
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
-  const [txModalType, setTxModalType] = useState<'income' | 'expense'>('expense');
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [isCapitalModalOpen, setIsCapitalModalOpen] = useState(false);
-  const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
 
   const isViewer = currentStore?.role === 'viewer';
   const canMutate = !isViewer && !isOffline;
@@ -88,15 +76,25 @@ export default function DashboardTab() {
 
       const now = new Date();
       let startDateStr = '';
+      let endDateStr = '';
+
       if (dateRange === 'today') {
-        startDateStr = now.toISOString().split('T')[0];
+        const todayStr = now.toISOString().split('T')[0];
+        startDateStr = todayStr;
+        endDateStr = todayStr;
       } else if (dateRange === 'month') {
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
         startDateStr = firstDay.toISOString().split('T')[0];
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        endDateStr = lastDay.toISOString().split('T')[0];
+      } else if (dateRange === 'range') {
+        startDateStr = customStartDate;
+        endDateStr = customEndDate;
       }
 
       const params = new URLSearchParams();
       if (startDateStr) params.set('startDate', startDateStr);
+      if (endDateStr) params.set('endDate', endDateStr);
       if (selectedWalletFilter) params.set('walletId', selectedWalletFilter);
       if (selectedTypeFilter) params.set('type', selectedTypeFilter);
 
@@ -106,242 +104,153 @@ export default function DashboardTab() {
         setTransactions(tData.transactions || []);
         setSummary(tData.summary || { totalIncome: 0, totalExpense: 0, netCashFlow: 0 });
       }
-
-      const staffRes = await fetch(`/api/stores/${currentStore.id}/staff`);
-      if (staffRes.ok) {
-        const sData = await staffRes.json();
-        setStaffList(sData.staff || []);
-      }
     } catch (err) {
       console.error('Fetch dashboard error:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [currentStore, dateRange, selectedWalletFilter, selectedTypeFilter]);
+  }, [currentStore, dateRange, customStartDate, customEndDate, selectedWalletFilter, selectedTypeFilter]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const totalWalletBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
-
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white rounded-3xl p-5 shadow-lg relative overflow-hidden">
-          <div className="absolute right-[-10px] top-[-10px] w-28 h-28 bg-emerald-600/20 rounded-full blur-2xl" />
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
-              Total Saldo Dompet
-            </span>
-            <WalletIcon className="w-4 h-4 text-emerald-300" />
-          </div>
-          <p className="text-2xl sm:text-3xl font-black tracking-tight">
-            Rp {totalWalletBalance.toLocaleString('id-ID')}
-          </p>
-          <p className="text-xs text-emerald-200/80 mt-1">
-            Tersebar di {wallets.length} rekening / dompet aktif
-          </p>
-        </div>
-
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Kas Masuk (Omzet)</span>
-            <span className="p-1.5 rounded-xl bg-emerald-50 text-emerald-600">
-              <TrendingUp className="w-4 h-4" />
-            </span>
-          </div>
-          <p className="text-xl sm:text-2xl font-bold text-emerald-700">
-            + Rp {summary.totalIncome.toLocaleString('id-ID')}
-          </p>
-          <p className="text-[11px] text-slate-400 mt-1">
-            {dateRange === 'month' ? 'Bulan Ini' : dateRange === 'today' ? 'Hari Ini' : 'Semua Riwayat'}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Arus Kas Bersih</span>
-            <span
-              className={`p-1.5 rounded-xl ${
-                summary.netCashFlow >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+    <div className="space-y-5">
+      {/* Top Controls: Filter Rentang Waktu (Kiri) & Button Tambah Transaksi (Kanan) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Date Filter Buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex bg-slate-100 p-1 rounded-2xl text-xs font-semibold">
+            <button
+              onClick={() => setDateRange('today')}
+              className={`px-3.5 py-2 rounded-xl transition ${
+                dateRange === 'today'
+                  ? 'bg-white text-slate-900 shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              {summary.netCashFlow >= 0 ? (
-                <TrendingUp className="w-4 h-4" />
-              ) : (
-                <TrendingDown className="w-4 h-4" />
-              )}
-            </span>
-          </div>
-          <p
-            className={`text-xl sm:text-2xl font-bold ${
-              summary.netCashFlow >= 0 ? 'text-emerald-700' : 'text-rose-600'
-            }`}
-          >
-            {summary.netCashFlow >= 0 ? '+' : ''} Rp {summary.netCashFlow.toLocaleString('id-ID')}
-          </p>
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
-            <span>Beban: Rp {summary.totalExpense.toLocaleString('id-ID')}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">
-          Aksi Cepat Finansial
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <button
-            onClick={() => {
-              setTxModalType('income');
-              setIsTxModalOpen(true);
-            }}
-            disabled={!canMutate}
-            className="flex items-center gap-2.5 p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 font-semibold text-xs transition disabled:opacity-50"
-          >
-            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
-              <ArrowDownRight className="w-4 h-4" />
-            </div>
-            <div className="text-left">
-              <p className="leading-tight">Kas Masuk</p>
-              <p className="text-[10px] font-normal text-emerald-600">Omzet Harian</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => {
-              setTxModalType('expense');
-              setIsTxModalOpen(true);
-            }}
-            disabled={!canMutate}
-            className="flex items-center gap-2.5 p-3 rounded-2xl bg-rose-50 hover:bg-rose-100/80 text-rose-800 font-semibold text-xs transition disabled:opacity-50"
-          >
-            <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0">
-              <ArrowUpRight className="w-4 h-4" />
-            </div>
-            <div className="text-left">
-              <p className="leading-tight">Kas Keluar</p>
-              <p className="text-[10px] font-normal text-rose-600">Beban / Belanja</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setIsTransferModalOpen(true)}
-            disabled={!canMutate || wallets.length < 2}
-            className="flex items-center gap-2.5 p-3 rounded-2xl bg-blue-50 hover:bg-blue-100/80 text-blue-800 font-semibold text-xs transition disabled:opacity-50"
-          >
-            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
-              <ArrowRightLeft className="w-4 h-4" />
-            </div>
-            <div className="text-left">
-              <p className="leading-tight">Transfer Dompet</p>
-              <p className="text-[10px] font-normal text-blue-600">Pindah Kas Internal</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setIsCapitalModalOpen(true)}
-            disabled={!canMutate}
-            className="flex items-center gap-2.5 p-3 rounded-2xl bg-indigo-50 hover:bg-indigo-100/80 text-indigo-800 font-semibold text-xs transition disabled:opacity-50"
-          >
-            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
-              <Coins className="w-4 h-4" />
-            </div>
-            <div className="text-left">
-              <p className="leading-tight">Setor Modal</p>
-              <p className="text-[10px] font-normal text-indigo-600">Ekuitas Modal</p>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center gap-2">
-            <WalletIcon className="w-4 h-4 text-emerald-700" />
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-              Dompet & Rekening Kas ({wallets.length})
-            </h3>
-          </div>
-          {canMutate && (
-            <button
-              onClick={() => setIsWalletModalOpen(true)}
-              className="flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Tambah Dompet</span>
+              Hari Ini
             </button>
+            <button
+              onClick={() => setDateRange('month')}
+              className={`px-3.5 py-2 rounded-xl transition ${
+                dateRange === 'month'
+                  ? 'bg-white text-slate-900 shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Bulan Ini
+            </button>
+            <button
+              onClick={() => setDateRange('range')}
+              className={`px-3.5 py-2 rounded-xl transition ${
+                dateRange === 'range'
+                  ? 'bg-white text-slate-900 shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Rentang Waktu
+            </button>
+          </div>
+
+          {/* Date Picker jika memilih Rentang Waktu */}
+          {dateRange === 'range' && (
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-xs">
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="text-xs text-slate-700 bg-transparent focus:outline-none font-medium"
+              />
+              <span className="text-xs text-slate-400 font-bold">&ndash;</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="text-xs text-slate-700 bg-transparent focus:outline-none font-medium"
+              />
+            </div>
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {wallets.map((wallet) => (
-            <div
-              key={wallet.id}
-              className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center justify-between"
-            >
-              <div>
-                <p className="text-xs text-slate-500 font-medium">{wallet.name}</p>
-                <p className="text-lg font-bold text-slate-900 mt-0.5">
-                  Rp {wallet.balance.toLocaleString('id-ID')}
-                </p>
-              </div>
-              <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600">
-                <WalletIcon className="w-4 h-4" />
-              </div>
-            </div>
-          ))}
+        {/* Button Tambah Transaksi */}
+        {canMutate && (
+          <button
+            onClick={() => setIsTxModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20 transition active:scale-[0.98] shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Transaksi</span>
+          </button>
+        )}
+      </div>
 
-          {wallets.length === 0 && (
-            <div className="col-span-full py-8 text-center bg-white rounded-2xl border border-slate-100 text-slate-400 text-xs">
-              Belum ada dompet kas terdaftar. Silakan tambahkan dompet kas pertama Anda.
+      {/* Summary Cards: Pemasukan & Pengeluaran */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Card Pemasukan */}
+        <div className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white rounded-3xl p-5 sm:p-6 shadow-lg shadow-emerald-700/20 relative overflow-hidden border border-emerald-500/30 flex flex-col justify-between">
+          <div className="absolute -top-10 -right-10 w-36 h-36 bg-emerald-400/25 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-100">
+                Pemasukan
+              </span>
+              <span className="p-2 rounded-xl bg-white/20 text-white backdrop-blur-sm shadow-xs">
+                <ArrowDownRight className="w-5 h-5" />
+              </span>
             </div>
-          )}
+            <p className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
+              Rp {summary.totalIncome.toLocaleString('id-ID')}
+            </p>
+          </div>
+          <p className="relative z-10 text-[11px] text-emerald-100/90 mt-4 font-medium">
+            {dateRange === 'today'
+              ? 'Hari ini'
+              : dateRange === 'month'
+              ? 'Bulan ini'
+              : `Periode: ${customStartDate} s/d ${customEndDate}`}
+          </p>
+        </div>
+
+        {/* Card Pengeluaran */}
+        <div className="bg-gradient-to-br from-rose-600 via-rose-700 to-red-800 text-white rounded-3xl p-5 sm:p-6 shadow-lg shadow-rose-700/20 relative overflow-hidden border border-rose-500/30 flex flex-col justify-between">
+          <div className="absolute -top-10 -right-10 w-36 h-36 bg-rose-400/25 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-rose-100">
+                Pengeluaran
+              </span>
+              <span className="p-2 rounded-xl bg-white/20 text-white backdrop-blur-sm shadow-xs">
+                <ArrowUpRight className="w-5 h-5" />
+              </span>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
+              Rp {summary.totalExpense.toLocaleString('id-ID')}
+            </p>
+          </div>
+          <p className="relative z-10 text-[11px] text-rose-100/90 mt-4 font-medium">
+            {dateRange === 'today'
+              ? 'Hari ini'
+              : dateRange === 'month'
+              ? 'Bulan ini'
+              : `Periode: ${customStartDate} s/d ${customEndDate}`}
+          </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+      {/* Riwayat Mutasi Kas */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-100">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
           <div>
             <h3 className="text-base font-bold text-slate-900">Riwayat Mutasi Kas</h3>
-            <p className="text-xs text-slate-500">
-              Menampilkan {transactions.length} mutasi terbaru
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-medium">
-              <button
-                onClick={() => setDateRange('today')}
-                className={`px-2.5 py-1 rounded-lg transition ${
-                  dateRange === 'today' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600'
-                }`}
-              >
-                Hari Ini
-              </button>
-              <button
-                onClick={() => setDateRange('month')}
-                className={`px-2.5 py-1 rounded-lg transition ${
-                  dateRange === 'month' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600'
-                }`}
-              >
-                Bulan Ini
-              </button>
-              <button
-                onClick={() => setDateRange('all')}
-                className={`px-2.5 py-1 rounded-lg transition ${
-                  dateRange === 'all' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600'
-                }`}
-              >
-                Semua
-              </button>
-            </div>
-
             <select
               value={selectedWalletFilter}
               onChange={(e) => setSelectedWalletFilter(e.target.value)}
-              className="text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 bg-white"
+              className="text-xs px-3 py-2 rounded-xl border border-slate-200 text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
               <option value="">Semua Dompet</option>
               {wallets.map((w) => (
@@ -354,11 +263,11 @@ export default function DashboardTab() {
             <select
               value={selectedTypeFilter}
               onChange={(e) => setSelectedTypeFilter(e.target.value)}
-              className="text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 bg-white"
+              className="text-xs px-3 py-2 rounded-xl border border-slate-200 text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
               <option value="">Semua Jenis</option>
-              <option value="income">Kas Masuk</option>
-              <option value="expense">Kas Keluar</option>
+              <option value="income">Pemasukan</option>
+              <option value="expense">Pengeluaran</option>
               <option value="transfer">Transfer</option>
             </select>
           </div>
@@ -371,7 +280,7 @@ export default function DashboardTab() {
             </div>
           ) : transactions.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-sm">
-              Tidak ada catatan transaksi pada filter ini.
+              Tidak ada catatan transaksi.
             </div>
           ) : (
             transactions.map((tx) => (
@@ -445,32 +354,8 @@ export default function DashboardTab() {
       <CreateTransactionModal
         isOpen={isTxModalOpen}
         wallets={wallets}
-        defaultType={txModalType}
+        defaultType="income"
         onClose={() => setIsTxModalOpen(false)}
-        onSuccess={fetchData}
-      />
-      <CreateWalletModal
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
-        onSuccess={fetchData}
-      />
-      <TransferWalletModal
-        isOpen={isTransferModalOpen}
-        wallets={wallets}
-        onClose={() => setIsTransferModalOpen(false)}
-        onSuccess={fetchData}
-      />
-      <CreateCapitalModal
-        isOpen={isCapitalModalOpen}
-        wallets={wallets}
-        onClose={() => setIsCapitalModalOpen(false)}
-        onSuccess={fetchData}
-      />
-      <CreateAdvanceModal
-        isOpen={isAdvanceModalOpen}
-        staffList={staffList}
-        wallets={wallets}
-        onClose={() => setIsAdvanceModalOpen(false)}
         onSuccess={fetchData}
       />
     </div>

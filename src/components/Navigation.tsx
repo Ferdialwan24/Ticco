@@ -3,13 +3,14 @@
 import React from 'react';
 import {
   LayoutDashboard,
+  Wallet,
   Coins,
   Receipt,
   Settings,
   FileCheck,
 } from 'lucide-react';
 
-export type ActiveTab = 'dashboard' | 'capital' | 'payroll' | 'my-payslips' | 'settings';
+export type ActiveTab = 'dashboard' | 'wallets' | 'capital' | 'payroll' | 'my-payslips' | 'settings';
 
 interface NavigationProps {
   activeTab: ActiveTab;
@@ -23,7 +24,8 @@ export default function Navigation({
   hasLinkedStaff = false,
 }: NavigationProps) {
   const tabs = [
-    { id: 'dashboard', label: 'Arus Kas', icon: LayoutDashboard },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'wallets', label: 'Dompet', icon: Wallet },
     { id: 'capital', label: 'Modal', icon: Coins },
     { id: 'payroll', label: 'Gaji & Staf', icon: Receipt },
     ...(hasLinkedStaff

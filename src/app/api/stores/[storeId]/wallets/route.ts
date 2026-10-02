@@ -27,6 +27,9 @@ export async function GET(req: Request, { params }: RouteParams) {
     const formatted = wallets.map((w) => ({
       id: w._id.toString(),
       name: w.name,
+      type: w.type || 'cash',
+      bankCode: w.bankCode || null,
+      accountNumber: w.accountNumber || '',
       balance: w.balance,
       isArchived: w.isArchived,
       createdAt: w.createdAt,
@@ -51,11 +54,21 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     const body = await req.json();
     const name = body.name?.trim();
+    const type = ['cash', 'bank', 'ewallet'].includes(body.type) ? body.type : 'cash';
+    const bankCode = body.bankCode?.trim() || null;
+    const accountNumber = body.accountNumber?.trim() || '';
     const initialBalance = Number(body.initialBalance) || 0;
 
     if (!name || name.length < 2 || name.length > 50) {
       return NextResponse.json(
         { error: 'BadRequest', message: 'Nama dompet wajib diisi (2 - 50 karakter).' },
+        { status: 400 }
+      );
+    }
+
+    if (type === 'bank' && !bankCode) {
+      return NextResponse.json(
+        { error: 'BadRequest', message: 'Pilihan bank wajib ditentukan untuk rekening bank.' },
         { status: 400 }
       );
     }
@@ -72,6 +85,9 @@ export async function POST(req: Request, { params }: RouteParams) {
     const newWallet = await Wallet.create({
       storeId: new mongoose.Types.ObjectId(storeId),
       name,
+      type,
+      bankCode,
+      accountNumber,
       balance: initialBalance,
     });
 
@@ -81,6 +97,9 @@ export async function POST(req: Request, { params }: RouteParams) {
         wallet: {
           id: newWallet._id.toString(),
           name: newWallet.name,
+          type: newWallet.type,
+          bankCode: newWallet.bankCode,
+          accountNumber: newWallet.accountNumber,
           balance: newWallet.balance,
           isArchived: newWallet.isArchived,
           createdAt: newWallet.createdAt,

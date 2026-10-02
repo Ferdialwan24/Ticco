@@ -18,7 +18,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     const body = await req.json();
-    const { fromWalletId, toWalletId, amount, date, notes } = body;
+    const { fromWalletId, toWalletId, amount, date, notes, adminFee = 0, adminFeeMethod } = body;
 
     const transferAmount = Number(amount);
     if (!transferAmount || transferAmount <= 0) {
@@ -27,6 +27,9 @@ export async function POST(req: Request, { params }: RouteParams) {
         { status: 400 }
       );
     }
+
+    const fee = Math.max(0, Number(adminFee) || 0);
+    const totalDeduction = transferAmount + fee;
 
     if (!fromWalletId || !toWalletId) {
       return NextResponse.json(
@@ -65,9 +68,9 @@ export async function POST(req: Request, { params }: RouteParams) {
         _id: fromObjId,
         storeId: storeObjId,
         isArchived: false,
-        balance: { $gte: transferAmount },
+        balance: { $gte: totalDeduction },
       },
-      { $inc: { balance: -transferAmount } }
+      { $inc: { balance: -totalDeduction } }
     );
 
     if (debitResult.modifiedCount === 0) {
@@ -81,7 +84,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       return NextResponse.json(
         {
           error: 'UnprocessableEntity',
-          message: `Saldo dompet asal tidak mencukupi (Saldo saat ini: Rp ${sourceWallet.balance.toLocaleString('id-ID')}).`,
+          message: `Saldo ${sourceWallet.name} tidak mencukupi untuk transfer Rp ${transferAmount.toLocaleString('id-ID')}${fee > 0 ? ` + admin Rp ${fee.toLocaleString('id-ID')}` : ''} (Saldo saat ini: Rp ${sourceWallet.balance.toLocaleString('id-ID')}).`,
         },
         { status: 422 }
       );
@@ -95,13 +98,15 @@ export async function POST(req: Request, { params }: RouteParams) {
     if (creditResult.modifiedCount === 0) {
       await Wallet.updateOne(
         { _id: fromObjId, storeId: storeObjId },
-        { $inc: { balance: transferAmount } }
+        { $inc: { balance: totalDeduction } }
       );
       return NextResponse.json(
         { error: 'InternalServerError', message: 'Gagal mengkredit dompet tujuan. Transaksi dibatalkan.' },
         { status: 500 }
       );
     }
+
+    const txDate = date ? new Date(date) : new Date();
 
     const transferTx = await Transaction.create({
       storeId: storeObjId,
@@ -110,10 +115,24 @@ export async function POST(req: Request, { params }: RouteParams) {
       type: 'transfer',
       category: 'Transfer Antar-Dompet',
       amount: transferAmount,
-      date: date ? new Date(date) : new Date(),
-      notes: notes?.trim() || `Transfer dana internal ke ${destWallet.name}`,
+      adminFee: fee,
+      date: txDate,
+      notes: notes?.trim() || `Transfer dana internal ke ${destWallet.name}${fee > 0 ? ` (Biaya Admin Rp ${fee.toLocaleString('id-ID')})` : ''}`,
       recordedBy: new mongoose.Types.ObjectId(authResult.user!.userId),
     });
+
+    if (fee > 0) {
+      await Transaction.create({
+        storeId: storeObjId,
+        walletId: fromObjId,
+        type: 'expense',
+        category: 'Biaya Administrasi Bank',
+        amount: fee,
+        date: txDate,
+        notes: `Biaya transfer (${adminFeeMethod || 'Transfer Antar-Bank'}) ke ${destWallet.name}`,
+        recordedBy: new mongoose.Types.ObjectId(authResult.user!.userId),
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -121,6 +140,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       transaction: {
         id: transferTx._id.toString(),
         amount: transferTx.amount,
+        adminFee: fee,
         fromWalletId,
         toWalletId,
         date: transferTx.date,

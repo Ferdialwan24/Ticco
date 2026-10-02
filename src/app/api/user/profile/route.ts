@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectToDatabase from '@/lib/db/mongoose';
 import User from '@/models/User';
 import { getAuthenticatedUser } from '@/lib/auth-guard';
@@ -13,7 +14,14 @@ export async function GET() {
     }
 
     await connectToDatabase();
-    const user = await User.findById(authUser.userId).lean();
+    let user = null;
+    if (authUser.userId && mongoose.Types.ObjectId.isValid(authUser.userId)) {
+      user = await User.findById(authUser.userId).lean();
+    }
+    if (!user && authUser.userEmail) {
+      user = await User.findOne({ email: authUser.userEmail.toLowerCase() }).lean();
+    }
+
     if (!user) {
       return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 });
     }
@@ -24,8 +32,8 @@ export async function GET() {
         email: user.email,
         name: user.name,
         username: user.username || null,
-        avatarUrl: user.avatarUrl,
-        hasUsername: Boolean(user.username),
+        avatarUrl: user.avatarUrl || '',
+        hasUsername: Boolean(user.username && user.username.trim().length > 0),
       },
     });
   } catch (error: any) {

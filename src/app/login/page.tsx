@@ -2,46 +2,59 @@
 
 import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import {
-  Wallet,
-  ShieldCheck,
-  Sparkles,
-  ArrowRight,
   TrendingUp,
   Receipt,
-  Users,
   Coins,
+  Lock,
+  User,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [demoEmail, setDemoEmail] = useState('');
-  const [demoName, setDemoName] = useState('');
-  const [showDemoForm, setShowDemoForm] = useState(false);
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleGoogleLogin = () => {
     setIsSubmitting(true);
     signIn('google', { callbackUrl: '/' });
   };
 
-  const handleDemoSubmit = async (e: React.FormEvent) => {
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!demoEmail) return;
-    setIsSubmitting(true);
-    await signIn('demo-login', {
-      email: demoEmail.trim().toLowerCase(),
-      name: demoName.trim() || demoEmail.split('@')[0],
-      callbackUrl: '/',
-    });
-  };
+    setErrorMsg('');
 
-  const handleQuickDemo = async (email: string, name: string) => {
+    if (!identifier.trim() || !password.trim()) {
+      setErrorMsg('Username/email dan password wajib diisi.');
+      return;
+    }
+
     setIsSubmitting(true);
-    await signIn('demo-login', {
-      email,
-      name,
-      callbackUrl: '/',
-    });
+
+    try {
+      const res = await signIn('credentials', {
+        identifier: identifier.trim().toLowerCase(),
+        password,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        setErrorMsg('Username/email atau password salah.');
+        setIsSubmitting(false);
+      } else {
+        router.push('/');
+        router.refresh();
+      }
+    } catch {
+      setErrorMsg('Terjadi kesalahan saat masuk. Silakan coba lagi.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -50,46 +63,19 @@ export default function LoginPage() {
       <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header Brand */}
-      <div className="relative z-10 flex items-center justify-between max-w-6xl mx-auto w-full">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-emerald-500/30">
-            T
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-white tracking-tight leading-none">
-              Ticco
-            </h1>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-              Cash Flow Tracker
-            </span>
-          </div>
-        </div>
-
-        <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-400 bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/60">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Multi-Store Scoped RBAC</span>
-        </div>
-      </div>
-
       {/* Main Container */}
       <div className="relative z-10 max-w-6xl mx-auto w-full my-auto py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Left Side: Value Props */}
+        {/* Left Side: Advertising Copy */}
         <div className="lg:col-span-7 space-y-6 text-white">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold tracking-wide">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-            <span>PWA Pencatatan Kas & Finansial Bisnis</span>
-          </div>
-
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-            Pemisahan Tegas Antara <br />
+            Ticco: <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-              Modal, Omzet & Gaji Staf.
+              Cash Flow Tracker
             </span>
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300 max-w-xl leading-relaxed">
-            Hentikan kerancuan laba-rugi semu. Pantau ekuitas modal dan porsi kepemilikan, kontrol mutasi multi-dompet dengan query atomik, dan kelola kasbon staf dengan proteksi snapshot freeze.
+            Solusi pintar kelola finansial operasional toko dan permodalan bisnis keluarga. Pantau arus kas riil, rapikan gaji & kasbon staf, dan pisahkan ekuitas modal dari omzet harian secara otomatis tanpa ribet.
           </p>
 
           {/* Feature Badges */}
@@ -104,17 +90,17 @@ export default function LoginPage() {
 
             <div className="bg-slate-800/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/50">
               <TrendingUp className="w-5 h-5 text-teal-400 mb-2" />
-              <h4 className="text-xs font-bold text-white mb-1">Atomic Balance</h4>
+              <h4 className="text-xs font-bold text-white mb-1">Proteksi Saldo Kas</h4>
               <p className="text-[11px] text-slate-400 leading-tight">
-                Cegah saldo minus dengan validasi atomik.
+                Cegah saldo minus dengan validasi real-time.
               </p>
             </div>
 
             <div className="bg-slate-800/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/50">
               <Receipt className="w-5 h-5 text-cyan-400 mb-2" />
-              <h4 className="text-xs font-bold text-white mb-1">Snapshot Payroll</h4>
+              <h4 className="text-xs font-bold text-white mb-1">Arsip Payroll Digital</h4>
               <p className="text-[11px] text-slate-400 leading-tight">
-                Potong kasbon otomatis & kunci slip gaji.
+                Potong kasbon otomatis & amankan slip gaji.
               </p>
             </div>
           </div>
@@ -124,19 +110,93 @@ export default function LoginPage() {
         <div className="lg:col-span-5 w-full max-w-md mx-auto">
           <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100">
             <div className="text-center mb-6">
-              <h3 className="text-xl font-black text-slate-900">Masuk ke Ticco</h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Gunakan akun Google resmi atau mode demo instan
-              </p>
+              <div className="flex justify-center mb-3">
+                <Logo imgClassName="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-contain shadow-md shadow-emerald-500/15 border border-slate-100 p-1 bg-white" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900">Masuk ke dashboard</h3>
+            </div>
+
+            {errorMsg && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2.5 text-red-700 text-xs font-medium">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Credentials Login Form */}
+            <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Username atau Email
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    required
+                    placeholder="Username atau email"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md disabled:opacity-50 active:scale-[0.98]"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                    <span>Memproses...</span>
+                  </>
+                ) : (
+                  <span>Masuk</span>
+                )}
+              </button>
+            </form>
+
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-3 text-[11px] font-bold text-slate-400">
+                  atau
+                </span>
+              </div>
             </div>
 
             {/* Google Login Button */}
             <button
               onClick={handleGoogleLogin}
               disabled={isSubmitting}
-              className="w-full py-3.5 px-4 bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-300 text-slate-800 rounded-2xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-3 shadow-xs active:scale-[0.98] disabled:opacity-50 mb-4"
+              className="w-full py-3 px-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-800 rounded-xl font-bold text-xs transition flex items-center justify-center gap-3 shadow-xs active:scale-[0.98] disabled:opacity-50"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -156,107 +216,13 @@ export default function LoginPage() {
               </svg>
               <span>Lanjutkan dengan Google</span>
             </button>
-
-            <div className="relative my-5">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-3 text-[11px] font-bold text-slate-400">
-                  atau coba mode demo lokal
-                </span>
-              </div>
-            </div>
-
-            {/* Quick Demo Buttons */}
-            <div className="space-y-2 mb-4">
-              <button
-                type="button"
-                onClick={() => handleQuickDemo('owner@ticco.local', 'Bapak Hadi (Owner)')}
-                disabled={isSubmitting}
-                className="w-full py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-between"
-              >
-                <span>Demo Akun Owner (Bapak Hadi)</span>
-                <ArrowRight className="w-4 h-4 text-emerald-600" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemo('admin@ticco.local', 'Rian (Admin Operasional)')}
-                disabled={isSubmitting}
-                className="w-full py-2.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center justify-between"
-              >
-                <span>Demo Akun Admin (Rian)</span>
-                <ArrowRight className="w-4 h-4 text-blue-600" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemo('viewer@ticco.local', 'Ibu Linda (Viewer)')}
-                disabled={isSubmitting}
-                className="w-full py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-between"
-              >
-                <span>Demo Viewer (Ibu Linda)</span>
-                <ArrowRight className="w-4 h-4 text-slate-500" />
-              </button>
-            </div>
-
-            {/* Custom Demo form toggle */}
-            {!showDemoForm ? (
-              <button
-                type="button"
-                onClick={() => setShowDemoForm(true)}
-                className="w-full text-center text-[11px] font-semibold text-slate-400 hover:text-slate-600 transition"
-              >
-                + Masuk dengan email demo kustom
-              </button>
-            ) : (
-              <form onSubmit={handleDemoSubmit} className="space-y-3 pt-2 border-t border-slate-100">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    Email Pengguna
-                  </label>
-                  <input
-                    type="email"
-                    value={demoEmail}
-                    onChange={(e) => setDemoEmail(e.target.value)}
-                    required
-                    placeholder="nama@ticco.local"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    Nama Tampilan
-                  </label>
-                  <input
-                    type="text"
-                    value={demoName}
-                    onChange={(e) => setDemoName(e.target.value)}
-                    placeholder="Nama Lengkap"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition"
-                >
-                  {isSubmitting ? 'Memproses...' : 'Masuk Sekarang'}
-                </button>
-              </form>
-            )}
-
-            <p className="text-[10px] text-center text-slate-400 mt-5 leading-normal">
-              Dengan masuk, data Anda diisolasi per-toko sesuai peran yang ditentukan oleh pemilik unit usaha.
-            </p>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 text-center text-xs text-slate-500 py-3">
-        Ticco PWA &copy; {new Date().getFullYear()} &bull; Arus Kas & Ekuitas Operasional Bisnis
+      <div className="relative z-10 text-center text-xs text-slate-500 py-3" suppressHydrationWarning>
+        Ticco &copy; {new Date().getFullYear()} &bull; Arus Kas & Ekuitas Operasional Bisnis
       </div>
     </div>
   );

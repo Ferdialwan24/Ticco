@@ -4,6 +4,9 @@ export interface IWallet extends Document {
   _id: mongoose.Types.ObjectId;
   storeId: mongoose.Types.ObjectId;
   name: string;
+  type: 'cash' | 'bank' | 'ewallet';
+  bankCode?: string | null;
+  accountNumber?: string | null;
   balance: number;
   isArchived: boolean;
   createdAt: Date;
@@ -23,6 +26,21 @@ const WalletSchema = new Schema<IWallet>(
       required: true,
       trim: true,
       maxlength: 50,
+    },
+    type: {
+      type: String,
+      enum: ['cash', 'bank', 'ewallet'],
+      default: 'cash',
+    },
+    bankCode: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    accountNumber: {
+      type: String,
+      default: null,
+      trim: true,
     },
     balance: {
       type: Number,

@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Ticco: Cash Flow Tracker',
-  description: 'PWA internal cash flow tracking & equity breakdown untuk operasional bisnis',
+  description: 'Aplikasi internal cash flow tracking & equity breakdown untuk operasional bisnis',
   manifest: '/manifest.json',
   icons: {
     icon: '/icons/icon-192x192.png',
@@ -34,15 +34,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const AppProviders = (Providers as any)?.default || Providers;
-
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body className={`${inter.className} min-h-screen bg-slate-50 antialiased selection:bg-emerald-500 selection:text-white`}>
-        <AppProviders>{children}</AppProviders>
+      <body className={`${inter.className} min-h-screen bg-slate-50 antialiased selection:bg-emerald-500 selection:text-white`} suppressHydrationWarning>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -49,11 +49,33 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then(() => console.log('Service Worker registered'))
-        .catch((err) => console.warn('Service Worker registration failed:', err));
+    if ('serviceWorker' in navigator) {
+      const isLocalhost = Boolean(
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '[::1]' ||
+        window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
+      );
+
+      if (process.env.NODE_ENV === 'production' && !isLocalhost) {
+        navigator.serviceWorker
+          .register('/sw.js')
+          .then(() => console.log('Service Worker registered'))
+          .catch((err) => console.warn('Service Worker registration failed:', err));
+      } else {
+        // Automatically cleanup any leftover service workers and CacheStorage on dev/localhost
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister();
+          }
+        });
+        if ('caches' in window) {
+          caches.keys().then((keys) => {
+            for (const key of keys) {
+              caches.delete(key);
+            }
+          });
+        }
+      }
     }
 
     return () => {

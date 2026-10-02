@@ -233,7 +233,7 @@ export default function SettingsTab() {
         <div>
           <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs uppercase tracking-wider mb-1">
             <Settings className="w-4 h-4" />
-            <span>Store-Scoped RBAC & Config</span>
+            <span>Pengaturan & Akses Unit Bisnis</span>
           </div>
           <h2 className="text-xl font-black text-slate-900 tracking-tight">
             Pengaturan & Akses Toko
@@ -428,11 +428,11 @@ export default function SettingsTab() {
             <div className="flex items-center gap-2 text-emerald-400">
               <Info className="w-4 h-4 shrink-0" />
               <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                Arsitektur & PWA Offline
+                Keamanan & Akses Jaringan
               </h4>
             </div>
             <p className="text-[11px] leading-relaxed text-slate-400">
-              Ticco mengamankan mutasi finansial dengan strategi <strong>Network-First</strong> dan memblokir mutasi offline demi konsistensi pembukuan kas.
+              Ticco mengamankan pencatatan finansial secara real-time demi menjaga konsistensi saldo kas bisnis.
             </p>
             <div className="text-[11px] bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50 space-y-1">
               <div className="flex items-center justify-between">
@@ -443,7 +443,7 @@ export default function SettingsTab() {
               </div>
               <div className="flex items-center justify-between">
                 <span>Mode Proteksi Mutasi:</span>
-                <span className="font-bold text-white">Atomic ($gte)</span>
+                <span className="font-bold text-white">Proteksi Saldo Otomatis</span>
               </div>
             </div>
           </div>

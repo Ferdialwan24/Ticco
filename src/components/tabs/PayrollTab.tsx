@@ -474,7 +474,7 @@ export default function PayrollTab() {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-sm transition"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Kasbon Baru</span>
+                <span>Kasbon Baru</span>
               </button>
             )}
           </div>
@@ -590,7 +590,7 @@ export default function PayrollTab() {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Tambah Karyawan</span>
+                <span>Tambah Karyawan</span>
               </button>
             )}
           </div>
