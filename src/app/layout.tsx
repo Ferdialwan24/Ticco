@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { StoreProvider } from '@/context/StoreContext';
+import Providers from './providers';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -40,7 +40,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={`${inter.className} min-h-screen bg-slate-50 antialiased selection:bg-emerald-500 selection:text-white`}>
-        <StoreProvider>{children}</StoreProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
